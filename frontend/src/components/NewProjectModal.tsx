@@ -21,20 +21,18 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isCreatingNewCustomer, setIsCreatingNewCustomer] = useState<boolean>(false);
-  
-  // New Customer Form State
+
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
   const [custEmail, setCustEmail] = useState('');
 
-  // Project Form State
   const [projectName, setProjectName] = useState('');
-  const [assignedPartnerId, setAssignedPartnerId] = useState('1'); // 1: MK-Vector, 2: Lakshmi, 3: Teffill
+  const [assignedPartner, setAssignedPartner] = useState<'MK-Vector' | 'Lakshmi Photographic Studio' | 'Teffill'>('MK-Vector');
   const [committedDate, setCommittedDate] = useState(new Date().toISOString().split('T')[0]);
   const [totalAmount, setTotalAmount] = useState('0');
   const [advancePaid, setAdvancePaid] = useState('0');
   const [assetLink, setAssetLink] = useState('');
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -68,9 +66,8 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
 
     let activeCustomerId = parseInt(selectedCustomerId, 10);
 
-    // If inline new customer is toggled, create or queue customer first
     if (isCreatingNewCustomer) {
-      if (!custName || !custPhone) {
+      if (!custName.trim() || !custPhone.trim()) {
         setErrorMsg('Please enter customer name and phone number.');
         setSubmitting(false);
         return;
@@ -87,10 +84,10 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
           const custData = await custRes.json();
           activeCustomerId = custData.customer.id;
         } else {
-          throw new Error('Failed to create customer');
+          throw new Error('Failed to register customer');
         }
       } catch {
-        setErrorMsg('Could not register customer on server.');
+        setErrorMsg('Could not reach backend to register customer.');
         setSubmitting(false);
         return;
       }
@@ -99,16 +96,16 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
     const payload = {
       customer_id: activeCustomerId,
       project_name: projectName,
-      assigned_partner_id: parseInt(assignedPartnerId, 10),
+      assigned_partner: assignedPartner,
       committed_date: committedDate,
       total_amount: parseFloat(totalAmount) || 0,
       advance_paid: parseFloat(advancePaid) || 0,
       asset_link: assetLink || null,
     };
 
-    if (!navigator.onLine) {
+    if (typeof window !== 'undefined' && !navigator.onLine) {
       await queueMutation('/api/projects', 'POST', payload);
-      alert('Offline: Project creation queued in local storage.');
+      alert('Offline: Project queued in local storage.');
       setSubmitting(false);
       onProjectCreated();
       onClose();
@@ -131,7 +128,7 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
       }
     } catch {
       await queueMutation('/api/projects', 'POST', payload);
-      alert('Network dropped. Queued project creation locally.');
+      alert('Backend unreachable. Project queued locally.');
       onProjectCreated();
       onClose();
     } finally {
@@ -140,46 +137,57 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div className="bg-slate-900 border border-slate-700 rounded-lg max-w-lg w-full p-6 text-slate-100 shadow-2xl space-y-4">
-          <h2 className="text-base font-semibold">New Project Registration</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      {/* Centered Modal Card Container */}
+      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-6 text-slate-100 my-auto">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <h2 className="text-base font-semibold text-white tracking-wide">
+            New Project Registration
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-white transition p-1 rounded-md hover:bg-slate-800"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="flex items-center space-x-2 text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 p-2.5 rounded">
+          <div className="flex items-center space-x-2 text-xs text-rose-400 bg-rose-950/40 border border-rose-800/60 p-2.5 rounded-lg mb-4">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
+        {/* Modal Form */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {/* Customer Selection / Quick Add */}
+          
+          {/* Customer Selection */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <label className="font-medium text-slate-300">Customer</label>
               <button
                 type="button"
                 onClick={() => setIsCreatingNewCustomer(!isCreatingNewCustomer)}
-                className="text-amber-400 hover:underline flex items-center space-x-1"
+                className="text-amber-400 hover:text-amber-300 font-medium flex items-center space-x-1"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>{isCreatingNewCustomer ? 'Select Existing' : 'New Customer'}</span>
               </button>
             </div>
 
             {isCreatingNewCustomer ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-950 p-3 rounded border border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-950/80 p-3 rounded-lg border border-slate-800">
                 <input
                   type="text"
                   placeholder="Full Name"
                   required
                   value={custName}
                   onChange={(e) => setCustName(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
                 <input
                   type="tel"
@@ -187,25 +195,29 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
                   required
                   value={custPhone}
                   onChange={(e) => setCustPhone(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-amber-500"
+                  className="bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
               </div>
             ) : (
               <select
                 value={selectedCustomerId}
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2.5 text-slate-200 focus:outline-none focus:border-amber-500"
               >
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.customer_display_id} — {c.name} ({c.phone_number})
-                  </option>
-                ))}
+                {customers.length === 0 ? (
+                  <option value="">No existing customers found — Click + New Customer</option>
+                ) : (
+                  customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.customer_display_id} — {c.name} ({c.phone_number})
+                    </option>
+                  ))
+                )}
               </select>
             )}
           </div>
 
-          {/* Project Details */}
+          {/* Project Name */}
           <div className="space-y-1.5">
             <label className="font-medium text-slate-300">Project Name</label>
             <input
@@ -214,38 +226,39 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
               placeholder="e.g. Wedding Highlight Video, Acrylic Frame 12x18"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Partner & Committed Date */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-medium text-slate-300">Assign Partner</label>
               <select
-                value={assignedPartnerId}
-                onChange={(e) => setAssignedPartnerId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
+                value={assignedPartner}
+                onChange={(e) => setAssignedPartner(e.target.value as any)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
               >
-                <option value="1">MK-Vector</option>
-                <option value="2">Lakshmi Studio</option>
-                <option value="3">Teffill</option>
+                <option value="MK-Vector">MK-Vector</option>
+                <option value="Lakshmi Photographic Studio">Lakshmi Studio</option>
+                <option value="Teffill">Teffill</option>
               </select>
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-medium text-slate-300">Committed Delivery</label>
+              <label className="font-medium text-slate-300">Committed Delivery Date</label>
               <input
                 type="date"
                 required
                 value={committedDate}
                 onChange={(e) => setCommittedDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
               />
             </div>
           </div>
 
           {/* Financials */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="font-medium text-slate-300">Total Amount (₹)</label>
               <input
@@ -255,7 +268,7 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
                 required
                 value={totalAmount}
                 onChange={(e) => setTotalAmount(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
               />
             </div>
 
@@ -268,35 +281,36 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
                 required
                 value={advancePaid}
                 onChange={(e) => setAdvancePaid(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
               />
             </div>
           </div>
 
-          {/* Media Cloud Storage Link */}
+          {/* Asset Cloud Link */}
           <div className="space-y-1.5">
-            <label className="font-medium text-slate-300">Asset Cloud Link (Drive/Dropbox)</label>
+            <label className="font-medium text-slate-300">Asset Cloud Link (Drive / Dropbox / NAS)</label>
             <input
               type="url"
               placeholder="https://drive.google.com/..."
               value={assetLink}
               onChange={(e) => setAssetLink(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
             />
           </div>
 
-          <div className="pt-2 flex justify-end space-x-2">
+          {/* Footer Buttons */}
+          <div className="pt-3 border-t border-slate-800 flex justify-end space-x-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-medium transition"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md font-medium transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded transition"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-md transition cursor-pointer"
             >
               {submitting ? 'Registering...' : 'Register Project'}
             </button>
