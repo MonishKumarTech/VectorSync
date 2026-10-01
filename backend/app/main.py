@@ -9,6 +9,12 @@ from psycopg.rows import dict_row
 
 from app.core.db import get_db
 from app.schemas.project import ProjectCreate, ProjectStatusUpdate
+from pydantic import BaseModel, Field
+
+class CustomerCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    phone_number: str = Field(..., min_length=7, max_length=20)
+    email: Optional[str] = Field(None, max_length=100)
 
 load_dotenv()
 
@@ -216,3 +222,24 @@ def generate_whatsapp_link(project_id: int, conn = Depends(get_db)):
     wa_url = f"https://wa.me/{clean_phone}?text={encoded_message}"
     
     return {"whatsapp_url": wa_url, "preview_text": message}
+
+# Add to imports / schema section
+@app.get("/api/customers")
+def get_customers(conn = Depends(get_db)):
+    query = "SELECT id, customer_display_id, name, phone_number, email FROM customers ORDER BY name ASC;"
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(query)
+        rows = cur.fetchall()
+    return {"customers": rows}
+
+@app.post("/api/customers")
+def create_customer(payload: CustomerCreate, conn = Depends(get_db)):
+    query = """
+        INSERT INTO customers (name, phone_number, email)
+        VALUES (%s, %s, %s)
+        RETURNING id, customer_display_id, name, phone_number;
+    """
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(query, (payload.name.strip(), payload.phone_number.strip(), payload.email.strip() if payload.email else None))
+        customer = cur.fetchone()
+    return {"message": "Customer registered", "customer": customer}

@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { queueMutation } from '../../lib/syncQueue';
+import { Plus } from 'lucide-react';
+import { queueMutation } from '@/lib/syncQueue';
+import NewProjectModal from '@/components/NewProjectModal';
 
 interface DashboardStat {
   status: string;
@@ -12,6 +14,7 @@ export default function HomePage() {
   const [stats, setStats] = useState<DashboardStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -31,7 +34,6 @@ export default function HomePage() {
     fetchStats();
   }, []);
 
-  // Simulates updating Project 1 — if offline, queues mutation locally
   const handleSimulateStatusUpdate = async (newStatus: string) => {
     setActionMessage(null);
     const endpoint = '/api/projects/1/status';
@@ -67,18 +69,36 @@ export default function HomePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="relative max-w-6xl mx-auto p-6 space-y-6">
+      {/* Top Controls */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Operations Control</h1>
           <p className="text-xs text-slate-400 mt-1">Multi-Partner Unified Dashboard</p>
         </div>
-        <button
-          onClick={fetchStats}
-          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition"
-        >
-          Refresh Data
-        </button>
+
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={fetchStats}
+            className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition"
+          >
+            Refresh Data
+          </button>
+
+          {/* New Project Trigger Button */}
+          <button
+            type="button"
+            onClick={() => {
+              console.log('Opening modal...');
+              setIsModalOpen(true);
+            }}
+            className="flex items-center space-x-1.5 text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-3 py-1.5 rounded transition cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Project</span>
+          </button>
+        </div>
       </div>
 
       {actionMessage && (
@@ -104,11 +124,11 @@ export default function HomePage() {
         })}
       </div>
 
-      {/* Test Action Sandbox */}
+      {/* Quick Action Sandbox */}
       <div className="bg-slate-900/60 border border-slate-800/80 p-5 rounded-lg space-y-3">
         <h2 className="text-sm font-semibold text-slate-200">Force Sync & Offline Queue Test</h2>
         <p className="text-xs text-slate-400">
-          Click a button to update Project #1. If offline, the action is queued locally in IndexedDB and flagged in the top banner.
+          Simulate updating Project #1. If offline, the action will be caught in the local queue and flagged in the top banner.
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           <button
@@ -131,6 +151,13 @@ export default function HomePage() {
           </button>
         </div>
       </div>
+
+      {/* The Modal Dialog */}
+      <NewProjectModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onProjectCreated={fetchStats}
+      />
     </div>
   );
 }
