@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { API_BASE } from './api';
 
 export interface GroupMembershipBrief {
@@ -26,7 +26,7 @@ interface AuthContextType {
   token: string | null;
   activeGroup: GroupMembershipBrief | null;
   setActiveGroup: (group: GroupMembershipBrief | null) => void;
-  login: (userData: AuthUser, accessToken: string) => void;
+  login: (userData: AuthUser, accessToken?: string) => void;
   logout: () => void;
   isLoading: boolean;
   authFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -41,67 +41,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const savedUser = localStorage.getItem('vectorsync_user');
     const savedToken = localStorage.getItem('vectorsync_token');
     const savedGroup = localStorage.getItem('vectorsync_active_group');
 
     if (savedUser && savedToken) {
       try {
-        const parsed = JSON.parse(savedUser);
+        const parsed: AuthUser = JSON.parse(savedUser);
         setUser(parsed);
         setToken(savedToken);
+
         if (savedGroup) {
           setActiveGroup(JSON.parse(savedGroup));
         } else if (parsed.groups && parsed.groups.length > 0) {
           setActiveGroup(parsed.groups[0]);
         }
       } catch {
-        localStorage.clear();
+        localStorage.removeItem('vectorsync_user');
+        localStorage.removeItem('vectorsync_token');
+        localStorage.removeItem('vectorsync_active_group');
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = (userData: AuthUser, accessToken: string) => {
+  const login = useCallback((userData: AuthUser, accessToken?: string) => {
     setUser(userData);
-    setToken(accessToken);
-    localStorage.setItem('vectorsync_user', JSON.stringify(userData));
-    localStorage.setItem('vectorsync_token', accessToken);
+    const tokenVal = accessToken || '';
+    setToken(tokenVal);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vectorsync_user', JSON.stringify(userData));
+      if (tokenVal) {
+        localStorage.setItem('vectorsync_token', tokenVal);
+      }
+    }
 
     const initialGroup = userData.groups && userData.groups.length > 0 ? userData.groups[0] : null;
     setActiveGroup(initialGroup);
-    if (initialGroup) {
-      localStorage.setItem('vectorsync_active_group', JSON.stringify(initialGroup));
-    }
-  };
 
-  const logout = () => {
+    if (typeof window !== 'undefined') {
+      if (initialGroup) {
+        localStorage.setItem('vectorsync_active_group', JSON.stringify(initialGroup));
+      } else {
+        localStorage.removeItem('vectorsync_active_group');
+      }
+    }
+  }, []);
+
+  const logout = useCallback(() => {
     setUser(null);
     setToken(null);
     setActiveGroup(null);
-    localStorage.removeItem('vectorsync_user');
-    localStorage.removeItem('vectorsync_token');
-    localStorage.removeItem('vectorsync_active_group');
-  };
 
-  const handleSetActiveGroup = (group: GroupMembershipBrief | null) => {
-    setActiveGroup(group);
-    if (group) {
-      localStorage.setItem('vectorsync_active_group', JSON.stringify(group));
-    } else {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('vectorsync_user');
+      localStorage.removeItem('vectorsync_token');
       localStorage.removeItem('vectorsync_active_group');
     }
-  };
+  }, []);
 
-  const authFetch = async (url: string, options: RequestInit = {}) => {
-    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
-    const headers = new Headers(options.headers || {});
-    
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
+  const handleSetActiveGroup = useCallback((group: GroupMembershipBrief | null) => {
+    setActiveGroup(group);
+    if (typeof window !== 'undefined') {
+      if (group) {
+        localStorage.setItem('vectorsync_active_group', JSON.stringify(group));
+      } else {
+        localStorage.removeItem('vectorsync_active_group');
+      }
     }
-    return fetch(fullUrl, { ...options, headers });
-  };
+  }, []);
+
+  const authFetch = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const cleanBase = (API_BASE || '').replace(/\/+$/, '');
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    const fullUrl = url.startsWith('http://') || url.startsWith('https://') 
+      ? url 
+      : `${cleanBase}${cleanPath}`;
+
+    const headers = new Headers(options.headers || {});
+
+    const currentToken = token || (typeof window !== 'undefined' ? localStorage.getItem('vectorsync_token') : null);
+    if (currentToken) {
+      headers.set('Authorization', `Bearer ${currentToken}`);
+    }
+
+    const response = await fetch(fullUrl, { ...options, headers });
+
+    // Auto logout if the token expires or is rejected
+    if (response.status === 401) {
+      logout();
+    }
+
+    return response;
+  }, [token, logout]);
 
   return (
     <AuthContext.Provider
