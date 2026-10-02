@@ -19,7 +19,7 @@ raw_origins = os.getenv(
 allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
 
 # Load environment configuration
-load_dotenv(override=True)
+load_dotenv(override=False)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
