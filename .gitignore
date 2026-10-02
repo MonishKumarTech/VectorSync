@@ -1,29 +1,16 @@
-﻿# Virtual Environments
-venv/
-**/venv/
-env/
-**/env/
-
-# Environment Variables & Secrets
-.env
-**/.env
-.env.*
+﻿.env*
 !.env.example
-
-# Python Cache & Bytecode
-__pycache__/
+**/venv/
 **/__pycache__/
 *.py[cod]
-*.class
-
-# Frontend Builds & Dependencies
-node_modules/
 **/node_modules/
-.next/
 **/.next/
+**/out/
 dist/
 build/
-
-# OS Artifacts
+*.log
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+*.tmp

@@ -1,0 +1,18 @@
+# Local Credential Reference Files
+credentials.txt
+*credentials*.txt
+passwords.txt
+*passwords*.txt
+secrets.txt
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Local Python & Cache
+backend/.env
+__pycache__/
+*.pyc
+venv/
+.venv/
