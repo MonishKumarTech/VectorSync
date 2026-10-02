@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   UserPlus, KeyRound, CheckCircle2, 
-  Trash2, Layers, Edit2, Save, Users, FolderKanban, X
+  Trash2, Layers, Edit2, Save, Users, FolderKanban
 } from 'lucide-react';
 import AdminProjectEditModal from './AdminProjectEditModal';
 import { WorkProject } from './WorkTable';
+import { useAuth } from '@/lib/auth';
+import { API_BASE } from '@/lib/api';
 
 interface Group {
   id: number;
@@ -42,6 +44,7 @@ interface CustomerRecord {
 }
 
 export default function AdminMasterPanel() {
+  const { authFetch } = useAuth();
   const [activeAdminSubTab, setActiveAdminSubTab] = useState<'users' | 'groups' | 'projects' | 'customers'>('users');
   const [users, setUsers] = useState<AppUser[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -69,7 +72,6 @@ export default function AdminMasterPanel() {
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editUserCode, setEditUserCode] = useState('');
   const [editRole, setEditRole] = useState<'system' | 'user'>('user');
-  const [editGroupId, setEditGroupId] = useState<string>('');
 
   // Edit Group State
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
@@ -92,11 +94,12 @@ export default function AdminMasterPanel() {
 
   const fetchAllData = async () => {
     try {
+      const fetchCall = authFetch || fetch;
       const [uRes, gRes, pRes, cRes] = await Promise.all([
-        fetch('http://127.0.0.1:8000/api/admin/users'),
-        fetch('http://127.0.0.1:8000/api/groups'),
-        fetch('http://127.0.0.1:8000/api/projects/all?is_admin=true'),
-        fetch('http://127.0.0.1:8000/api/customers'),
+        fetchCall(`${API_BASE}/api/admin/users`),
+        fetchCall(`${API_BASE}/api/groups`),
+        fetchCall(`${API_BASE}/api/projects/all?is_admin=true`),
+        fetchCall(`${API_BASE}/api/customers`),
       ]);
       if (uRes.ok) setUsers((await uRes.json()).users || []);
       if (gRes.ok) {
@@ -122,7 +125,8 @@ export default function AdminMasterPanel() {
 
   const handleSaveUserEdit = async (userId: number) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/users/${userId}`, {
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/users/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,7 +154,8 @@ export default function AdminMasterPanel() {
   const handleDeleteUser = async (userId: number, username: string) => {
     if (!confirm(`Permanently delete user @${username}?`)) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/users/${userId}`, { method: 'DELETE' });
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/users/${userId}`, { method: 'DELETE' });
       if (res.ok) {
         showNotification(`User @${username} deleted.`);
         fetchAllData();
@@ -166,7 +171,8 @@ export default function AdminMasterPanel() {
   const handleDeleteGroup = async (groupId: number, groupName: string) => {
     if (!confirm(`Delete group "${groupName}"?`)) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/groups/${groupId}`, { method: 'DELETE' });
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/groups/${groupId}`, { method: 'DELETE' });
       if (res.ok) {
         showNotification(`Group "${groupName}" deleted.`);
         fetchAllData();
@@ -182,7 +188,8 @@ export default function AdminMasterPanel() {
   const handleDeleteProject = async (projectId: number, prjName: string) => {
     if (!confirm(`Permanently remove project "${prjName}"?`)) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/projects/${projectId}`, { method: 'DELETE' });
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/projects/${projectId}`, { method: 'DELETE' });
       if (res.ok) {
         showNotification('Project record deleted.');
         fetchAllData();
@@ -198,7 +205,8 @@ export default function AdminMasterPanel() {
   const handleDeleteCustomer = async (customerId: number, custName: string) => {
     if (!confirm(`Delete client "${custName}" and all associated orders?`)) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/customers/${customerId}`, { method: 'DELETE' });
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/customers/${customerId}`, { method: 'DELETE' });
       if (res.ok) {
         showNotification(`Client "${custName}" deleted.`);
         fetchAllData();
@@ -216,7 +224,8 @@ export default function AdminMasterPanel() {
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/admin/groups', {
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -239,7 +248,8 @@ export default function AdminMasterPanel() {
 
   const handleSaveGroupEdit = async (groupId: number) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/groups/${groupId}`, {
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/groups/${groupId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -264,7 +274,8 @@ export default function AdminMasterPanel() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/admin/users', {
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -298,7 +309,8 @@ export default function AdminMasterPanel() {
 
   const handleSaveCustomerEdit = async (customerId: number) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/customers/${customerId}`, {
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/customers/${customerId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +335,8 @@ export default function AdminMasterPanel() {
   const handleResetPassword = async (userId: number) => {
     if (!newResetPassword.trim()) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/users/${userId}/reset-password`, {
+      const fetchCall = authFetch || fetch;
+      const res = await fetchCall(`${API_BASE}/api/admin/users/${userId}/reset-password`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ new_password: newResetPassword.trim() }),
@@ -500,7 +513,6 @@ export default function AdminMasterPanel() {
 
                   return (
                     <tr key={u.id} className="hover:bg-slate-800/40">
-                      {/* User Details & Code */}
                       <td className="py-3 px-4">
                         {isEditing ? (
                           <div className="space-y-1.5">
@@ -539,7 +551,6 @@ export default function AdminMasterPanel() {
                         )}
                       </td>
 
-                      {/* Global Role */}
                       <td className="py-3 px-4">
                         {isEditing ? (
                           <select
@@ -559,7 +570,6 @@ export default function AdminMasterPanel() {
                         )}
                       </td>
 
-                      {/* Active GroupHub Groups with Lead/Member tags */}
                       <td className="py-3 px-4">
                         {u.role === 'system' ? (
                           <span className="text-amber-400 text-[11px] font-semibold">Global Overseer (All Groups)</span>
@@ -584,7 +594,6 @@ export default function AdminMasterPanel() {
                         )}
                       </td>
 
-                      {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         {isEditing ? (
                           <div className="inline-flex items-center space-x-1.5">

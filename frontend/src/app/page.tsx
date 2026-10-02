@@ -61,10 +61,10 @@ export default function HomePage() {
 
     try {
       const [statsRes, schedRes, backRes, custRes] = await Promise.all([
-        authFetch(`http://127.0.0.1:8000/api/dashboard/stats${queryParam}`),
-        authFetch(`http://127.0.0.1:8000/api/projects/schedule${queryParam}`),
-        authFetch(`http://127.0.0.1:8000/api/projects/backlog${queryParam}`),
-        authFetch('http://127.0.0.1:8000/api/customers/board'),
+        authFetch(`/api/dashboard/stats${queryParam}`),
+        authFetch(`/api/projects/schedule${queryParam}`),
+        authFetch(`/api/projects/backlog${queryParam}`),
+        authFetch('/api/customers/board'),
       ]);
 
       if (statsRes.ok) {
@@ -96,7 +96,7 @@ export default function HomePage() {
     }
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/api/projects/all?${params.toString()}`);
+      const res = await authFetch(`/api/projects/all?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setFilteredProjects(data.projects || []);
@@ -146,7 +146,7 @@ export default function HomePage() {
     };
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/api/projects/${projectId}/status`, {
+      const res = await authFetch(`/api/projects/${projectId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

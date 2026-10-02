@@ -24,10 +24,12 @@ export default function GroupDashboard({ groupId, groupName, onEditProject }: Gr
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { authFetch } = useAuth();
+
   const fetchGroupData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/groups/${groupId}/dashboard`);
+      const res = await authFetch(`/api/groups/${groupId}/dashboard`);
       if (res.ok) {
         const data = await res.json();
         setMembers(data.members || []);
@@ -38,7 +40,7 @@ export default function GroupDashboard({ groupId, groupName, onEditProject }: Gr
     } finally {
       setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, authFetch]);
 
   useEffect(() => {
     fetchGroupData();

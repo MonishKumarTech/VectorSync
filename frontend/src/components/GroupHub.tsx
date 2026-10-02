@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { 
   Users, UserCheck, LogOut, Plus, 
-  MessageSquare, ShieldCheck, Clock, CheckCircle2, 
+  MessageSquare, Clock, CheckCircle2, 
   Trash2, ShieldAlert, AlertTriangle, Shield
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -42,7 +42,7 @@ interface AvailableGroup {
 }
 
 export default function GroupHub() {
-  const { user, activeGroup, setActiveGroup, authFetch } = useAuth();
+  const { user, setActiveGroup, authFetch } = useAuth();
   
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
   const [allGroups, setAllGroups] = useState<AvailableGroup[]>([]);
@@ -67,7 +67,7 @@ export default function GroupHub() {
   const fetchUserGroups = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/api/user/${user.id}/groups`);
+      const res = await authFetch(`/api/user/${user.id}/groups`);
       if (res.ok) {
         const data = await res.json();
         const list: UserGroup[] = data.groups || [];
@@ -84,7 +84,7 @@ export default function GroupHub() {
             role_in_group: initial.role_in_group
           });
         } else if (user.role === 'system' && !selectedGroupId) {
-          const allRes = await authFetch('http://127.0.0.1:8000/api/groups');
+          const allRes = await authFetch('/api/groups');
           if (allRes.ok) {
             const allData = await allRes.json();
             if (allData.groups?.length > 0) {
@@ -109,8 +109,8 @@ export default function GroupHub() {
     if (!selectedGroupId) return;
     try {
       const [mRes, rRes] = await Promise.all([
-        authFetch(`http://127.0.0.1:8000/api/groups/${selectedGroupId}/members`),
-        authFetch(`http://127.0.0.1:8000/api/groups/${selectedGroupId}/pending-requests`),
+        authFetch(`/api/groups/${selectedGroupId}/members`),
+        authFetch(`/api/groups/${selectedGroupId}/pending-requests`),
       ]);
       if (mRes.ok) setMembers((await mRes.json()).members || []);
       if (rRes.ok) setPendingRequests((await rRes.json()).requests || []);
@@ -121,7 +121,7 @@ export default function GroupHub() {
 
   const fetchAllAvailableGroups = async () => {
     try {
-      const res = await authFetch('http://127.0.0.1:8000/api/groups');
+      const res = await authFetch('/api/groups');
       if (res.ok) {
         const data = await res.json();
         setAllGroups(data.groups || []);
@@ -174,7 +174,7 @@ export default function GroupHub() {
     if (!targetJoinGroupId) return;
 
     try {
-      const res = await authFetch('http://127.0.0.1:8000/api/groups/join', {
+      const res = await authFetch('/api/groups/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ group_id: parseInt(targetJoinGroupId, 10) }),
@@ -197,7 +197,7 @@ export default function GroupHub() {
     if (!confirm('Are you sure you want to leave this group? You can request to rejoin at any time.')) return;
 
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/api/groups/${groupId}/leave`, {
+      const res = await authFetch(`/api/groups/${groupId}/leave`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -220,7 +220,7 @@ export default function GroupHub() {
 
     try {
       const res = await authFetch(
-        `http://127.0.0.1:8000/api/groups/${selectedGroupId}/members/${targetUserId}/role`,
+        `/api/groups/${selectedGroupId}/members/${targetUserId}/role`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -245,7 +245,7 @@ export default function GroupHub() {
 
     try {
       const res = await authFetch(
-        `http://127.0.0.1:8000/api/groups/${selectedGroupId}/members/${memberToRemove.id}`,
+        `/api/groups/${selectedGroupId}/members/${memberToRemove.id}`,
         { method: 'DELETE' }
       );
       if (res.ok) {
@@ -269,7 +269,7 @@ export default function GroupHub() {
 
     try {
       const res = await authFetch(
-        `http://127.0.0.1:8000/api/groups/${selectedGroupId}/requests/${membershipId}`,
+        `/api/groups/${selectedGroupId}/requests/${membershipId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

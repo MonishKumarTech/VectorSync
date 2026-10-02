@@ -20,7 +20,7 @@ interface NewProjectModalProps {
 }
 
 export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: NewProjectModalProps) {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -44,7 +44,7 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/customers');
+      const res = await authFetch('/api/customers');
       if (res.ok) {
         const data = await res.json();
         const list: Customer[] = data.customers || [];
@@ -84,7 +84,7 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
       }
 
       try {
-        const custRes = await fetch('http://127.0.0.1:8000/api/customers', {
+        const custRes = await authFetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -127,7 +127,7 @@ export default function NewProjectModal({ isOpen, onClose, onProjectCreated }: N
     };
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/projects', {
+      const res = await authFetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

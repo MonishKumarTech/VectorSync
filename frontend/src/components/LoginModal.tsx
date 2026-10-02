@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Lock, User, AlertCircle, ShieldCheck } from 'lucide-react';
 import { useAuth, AuthUser } from '@/lib/auth';
+import { API_BASE } from '@/lib/api';
 
 export default function LoginModal() {
   const { login } = useAuth();
@@ -17,7 +18,7 @@ export default function LoginModal() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/auth/login', {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim(), password: password.trim() }),
@@ -25,7 +26,19 @@ export default function LoginModal() {
 
       if (res.ok) {
         const data = await res.json();
-        login(data.user as AuthUser);
+        // Construct fallback user if backend returns user directly or in payload
+        const userPayload: AuthUser = data.user || {
+          id: data.user_id || 0,
+          username: username.trim(),
+          display_name: data.display_name || username.trim(),
+          role: (data.role || (username.trim() === 'sys_root' ? 'system' : 'user')) as 'system' | 'user',
+          user_code: data.user_code || username.trim().toUpperCase(),
+          groups: data.groups || [],
+        };
+        const token = data.access_token || data.token || '';
+
+        // Passes both required arguments (userData, accessToken)
+        login(userPayload, token);
       } else {
         const err = await res.json();
         setErrorMsg(err.detail || 'Authentication failed');
